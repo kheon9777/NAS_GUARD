@@ -12,10 +12,19 @@
 #include <netinet/ip_icmp.h>  
 #include <netinet/in.h>
 #include <optional>
+#include <linux/if_packet.h>
 
 #include <cstdint>
 #include <cstdio>
 #include <string>
+
+// =======================================
+/* filter u_TCP u_UDP u_ICMP */
+
+// #define u_TCP
+// #define u_UDP
+#define u_ICMP
+// =======================================
 
 int main() {
     // 1. 모든 패킷을 받는 raw 소켓 열기
@@ -39,13 +48,40 @@ int main() {
         std::string flag = "";
         size_t payload_len = 0;
 
+        sockaddr_ll form;
+        socklen_t form_len = sizeof(form);
+
         // 2. 패킷 하나 받기
         // fd : 시스템 콜로 요청해서 커널에게 부여받은, I/O자원 접근에 필요한 정수 
         // 커널은 모든 프로세스에 대한 각각의 fd관리 테이블을 저장하고 있음. 시스템콜이 오면 그 프로세스의 fd테이블에서 찾아 어떤 자원인지 식별해서 작업을 수행함
-        ssize_t len = recv(fd, buffer, sizeof(buffer), 0);
+        ssize_t len = recvfrom(fd, buffer, sizeof(buffer), 0, reinterpret_cast<sockaddr*>(&form), &form_len);
         if (len < 0) {
             perror("recv");
             break;
+        }
+        // 아웃바운드 패킷은 스킵
+        /*
+        # 적용 전
+        raspi@raspi:~/workspace/PROTECT_RASPI/expr $ sudo ./a.out 
+        ICMP 127.0.0.1 -> 127.0.0.1 echo request 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo request 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo reply 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo reply 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo request 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo request 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo reply 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo reply 56 bytes
+        
+        # 적용 후
+        raspi@raspi:~/workspace/PROTECT_RASPI/expr $ g++ 03-rawsocket_filter.cpp -o 3.out
+        raspi@raspi:~/workspace/PROTECT_RASPI/expr $ sudo ./3.out 
+        ICMP 127.0.0.1 -> 127.0.0.1 echo request 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo reply 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo request 56 bytes
+        ICMP 127.0.0.1 -> 127.0.0.1 echo reply 56 bytes
+        */
+        if(form.sll_pkttype == PACKET_OUTGOING) {
+            continue;
         }
 
         if (len < static_cast<ssize_t>(sizeof(ethhdr) + sizeof(iphdr))) {
@@ -93,6 +129,9 @@ int main() {
         switch (ip->protocol)
         {
         case IPPROTO_TCP: {
+#ifndef u_TCP
+continue;
+#endif
             if(l4avail < sizeof(tcphdr)) {
                 continue;
             }
@@ -118,6 +157,9 @@ int main() {
         }
         
         case IPPROTO_UDP: {
+#ifndef u_UDP
+continue;
+#endif
             if(l4avail < sizeof(udphdr)) {
                 continue;
             }
@@ -132,6 +174,9 @@ int main() {
             break;
         }
         case IPPROTO_ICMP: {
+#ifndef u_ICMP
+continue;
+#endif
             if(l4avail < sizeof(icmphdr)) {
                 continue;
             }
