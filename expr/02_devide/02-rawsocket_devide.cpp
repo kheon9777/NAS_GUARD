@@ -20,8 +20,8 @@
 // =======================================
 /* filter u_TCP u_UDP u_ICMP */
 
-// #define u_TCP
-// #define u_UDP
+#define u_TCP
+#define u_UDP
 #define u_ICMP
 // =======================================
 

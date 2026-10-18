@@ -13,10 +13,15 @@
 #include <netinet/in.h>
 #include <optional>
 #include <linux/if_packet.h>
+#include <iostream>
 
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <unordered_map>
+
+#include "ICMP_history.h"
+#include "ChroTimer.h"
 
 // =======================================
 /* filter u_TCP u_UDP u_ICMP */
@@ -26,7 +31,9 @@
 #define u_ICMP
 // =======================================
 
+
 int main() {
+    std::unordered_map<uint32_t, ICMP_history> icmp_list;
     // 1. 모든 패킷을 받는 raw 소켓 열기
     // AF_PACKET : 네트워크 층 가장 아래, 랜카드 바로 위에서 패킷을 받겠다.
     // SOCK_RAW : Ethernet 헤더를 포함한 프레임 다 받는다. 
@@ -38,6 +45,8 @@ int main() {
     }
 
     uint8_t buffer[65536];
+
+    ChroTimer timer{"tm"};
 
     while (true) {
         const char* proto_str = nullptr;
@@ -200,6 +209,7 @@ continue;
             break;
         }
 
+        // SSH 연결은 무시
         if(sport == 22 || dport == 22) 
             continue;
 
@@ -207,26 +217,60 @@ continue;
         inet_ntop(AF_INET, &ip->saddr, src, sizeof(src));
         inet_ntop(AF_INET, &ip->daddr, dst, sizeof(dst));
 
-        // 7. 출력 (protocol: 1=ICMP, 6=TCP, 17=UDP)
-        if(sport.has_value() && dport.has_value()) {
-            printf("%s %s:%u -> %s:%u %s%zu bytes\n",
-                proto_str,
-                src,
-                static_cast<unsigned int>(*sport),
-                dst,
-                static_cast<unsigned int>(*dport),
-                flag.c_str(),
-                payload_len
-            );
+
+        // ip목록 관리
+        std::unordered_map<uint32_t, ICMP_history>::iterator it = icmp_list.find(ip->saddr);
+        if(it == icmp_list.end()) {
+            std::cout << "intert==========================\n";
+            icmp_list.insert({ip->saddr, ICMP_history{5,3,10, ip}});
         } else {
-            printf("%s %s -> %s %s%zu bytes\n",
-                proto_str,
-                src,
-                dst,
-                flag.c_str(),
-                payload_len
-            );
+            if(it->second.check().is_time_over()) {
+                std::cout << "<deleted>---" << it->second;
+                icmp_list.erase(it);
+                it = icmp_list.end()
+            } else {
+                it->second.update_time();
+            }
         }
+
+        // 1초마다 전체 검사
+        if(timer.duration() >= 1 ) {
+            std::cout << "---------------------[list]---------------------\n";
+            // 반복자로 순회
+            for(std::unordered_map<uint32_t, ICMP_history>::iterator iter = icmp_list.begin(); iter != icmp_list.end();) {
+                if(iter != it && iter->second.check().is_time_over()) {  // CASE : 보존기간 지난 경우 -> 목록에서 제거
+                    std::cout << "<deleted>---" << iter->second;
+                    iter = icmp_list.erase(iter);
+                } else {
+                    std::cout << iter->second;
+                    iter++;
+                }
+            }
+            std::cout << "------------------------------------------------\n";
+            timer.reset();
+        }
+
+
+        // 7. 출력 (protocol: 1=ICMP, 6=TCP, 17=UDP)
+        // if(sport.has_value() && dport.has_value()) {
+        //     printf("%s %s:%u -> %s:%u %s%zu bytes\n",
+        //         proto_str,
+        //         src,
+        //         static_cast<unsigned int>(*sport),
+        //         dst,
+        //         static_cast<unsigned int>(*dport),
+        //         flag.c_str(),
+        //         payload_len
+        //     );
+        // } else {
+        //     printf("%s %s -> %s %s%zu bytes\n",
+        //         proto_str,
+        //         src,
+        //         dst,
+        //         flag.c_str(),
+        //         payload_len
+        //     );
+        // }
         
     }
 
