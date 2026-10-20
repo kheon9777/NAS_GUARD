@@ -217,7 +217,6 @@ continue;
         inet_ntop(AF_INET, &ip->saddr, src, sizeof(src));
         inet_ntop(AF_INET, &ip->daddr, dst, sizeof(dst));
 
-
         // ip목록 관리
         std::unordered_map<uint32_t, ICMP_history>::iterator it = icmp_list.find(ip->saddr);
         if(it == icmp_list.end()) {
@@ -227,7 +226,7 @@ continue;
             if(it->second.check().is_time_over()) {
                 std::cout << "<deleted>---" << it->second;
                 icmp_list.erase(it);
-                it = icmp_list.end()
+                it = icmp_list.end();
             } else {
                 it->second.update_time();
             }
