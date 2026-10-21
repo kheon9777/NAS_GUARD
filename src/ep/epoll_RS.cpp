@@ -1,13 +1,13 @@
+#include "ep/epoll_RS.h"
+
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <vector>
 #include <memory>
-
 #include <cerrno>
 #include <system_error>
 
 #include "ep/handler/eventHandler.h"
-#include "ep/epoll_RS.h"
 #include "util/logger.h"
 
 namespace RS::ep {
@@ -26,7 +26,7 @@ epoll_RS::~epoll_RS()
 {
     if(fd_ >= 0) {
         close(fd_);
-        RS::util::logger("ep closed");
+        RS::util::logger("epoll_RS closed");
     }
 }
 

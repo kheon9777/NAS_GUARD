@@ -1,13 +1,10 @@
-// simple_dump.cpp
-// 빌드: g++ -std=c++17 -Wall -Wextra -o simple_dump simple_dump.cpp
-// 실행: sudo ./simple_dump
+#include "ep/handler/rawsockHandler.h"
 
 #include <iostream>
 #include <string>
 
 #include "util/logger.h"
 #include "ep/handler/eventHandler.h"
-#include "ep/handler/rawsockHandler.h"
 #include "scnet/rawsock.h"
 
 namespace RS::ep {

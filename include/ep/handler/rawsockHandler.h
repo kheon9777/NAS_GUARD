@@ -7,7 +7,6 @@ namespace RS::ep {
     class rawsockHandler : public eventHandler {
     private:
         int fd_;
-        /* data */
     public:
         rawsockHandler();
         ~rawsockHandler() override;

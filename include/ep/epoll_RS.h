@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <sys/epoll.h>
 
 #include "ep/handler/eventHandler.h"
 

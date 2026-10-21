@@ -1,4 +1,3 @@
-#include "util/logger.h"
 #include "ep/epoll_loop.h"
 
 int main()

@@ -1,3 +1,5 @@
+#include "scnet/ip_RS.h"
+
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 #include <sys/socket.h>
@@ -6,7 +8,6 @@
 #include <netinet/ip_icmp.h>  
 #include <netinet/in.h>
 #include <iostream>
-
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -15,47 +16,38 @@
 #include "util/logger.h"
 #include "scnet/ip_RS.h"
 
-#define EXCEPT_SELF
-
 namespace RS::scnet {
-
-enum class ip_RS_type {
-    TCP, UDP, ICMP
-};
-
-class ip_RS {
-private:
-    char src_[INET_ADDRSTRLEN];
-    char dst_[INET_ADDRSTRLEN];
-    ip_RS_type proto_;
-protected:
-    size_t payload_len_;
-    uint8_t is_fault_;
-    char mac_[12]; // TODO
-    virtual void print(std::ostream& os) const;
-public:
-    ip_RS(const iphdr* ip, const ip_RS_type proto);
-    virtual ~ip_RS() = default;
-    const char* src();
-    const char* dst();
-    const ip_RS_type proto() const {
-        return proto_;
-    }
-    bool is_proto(ip_RS_type val) const {
-        return proto_ == val;
-    }
-    uint8_t is_fault() const {
-        return is_fault_;
-    }
-    const size_t payload_len() const {
-        return payload_len_;
-    }
-    void set_payload_len(size_t val) {
-        payload_len_ = val;
-    }
-    friend std::ostream& operator << (std::ostream& os, const ip_RS& ip) {
-        ip.print(os);
-        return os;
-    }
-};
+void ip_RS::print(std::ostream &os) const {
+    os << src_ << " -> " << dst_;
+}
+ip_RS::ip_RS(const iphdr* ip, ip_RS_type proto)
+: proto_(proto), payload_len_(0), is_fault_(0) {
+    inet_ntop(AF_INET, &ip->saddr, src_, sizeof(src_));
+    inet_ntop(AF_INET, &ip->daddr, dst_, sizeof(dst_));
+}
+const char *ip_RS::src() const {
+    return src_;
+}
+const char *ip_RS::dst() const {
+    return dst_;
+}
+ip_RS_type ip_RS::proto() const {
+    return proto_;
+}
+bool ip_RS::is_proto(ip_RS_type val) const {
+    return proto_ == val;
+}
+uint8_t ip_RS::is_fault() const {
+    return is_fault_;
+}
+size_t ip_RS::payload_len() const {
+    return payload_len_;
+}
+void ip_RS::set_payload_len(size_t val) {
+    payload_len_ = val;
+}
+std::ostream& operator << (std::ostream& os, const ip_RS& ip) {
+    ip.print(os);
+    return os;
+}
 }

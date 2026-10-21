@@ -1,16 +1,22 @@
+#include "scnet/ip_UDP_RS.h"
 
-class ip_UDP_RS : public ip_RS {
-private:
-    uint16_t sport_;
-    uint16_t dport_;
-public:
-    ip_UDP_RS(const iphdr* ip, const udphdr* udp) : ip_RS(ip, ip_RS_type::UDP) {
-        sport_ = ntohs(udp->uh_sport);
-        dport_ = ntohs(udp->uh_dport);
-        payload_len_ = 8;
-        // payload_len = tot_len - ip_header_len - sizeof(udphdr);
-    }
-    void print(std::ostream& os) const override {
-        os << "UDP " << src() << ":" << sport_ << " -> " << dst() << ":" << dport_;
-    }
-};
+#include <netinet/ip.h>
+#include <netinet/udp.h>      
+#include <netinet/in.h>
+#include <iostream>
+#include <string>
+#include <memory>
+
+#include "scnet/ip_RS.h"
+
+namespace RS::scnet {
+
+ip_UDP_RS::ip_UDP_RS(const iphdr *ip, const udphdr *udp) : ip_RS(ip, ip_RS_type::UDP) {
+    sport_ = ntohs(udp->uh_sport);
+    dport_ = ntohs(udp->uh_dport);
+}
+void ip_UDP_RS::print(std::ostream &os) const {
+    os << "UDP " << src() << ":" << sport_ << " -> " << dst() << ":" << dport_;
+}
+
+}

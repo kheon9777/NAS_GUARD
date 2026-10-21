@@ -1,12 +1,11 @@
+#include "ep/handler/signalHandler.h"
+
 #include <sys/signalfd.h>
 #include <unistd.h>
 #include <signal.h>
-#include <cstdio>
-
 #include <cerrno>
 #include <system_error>
 
-#include "ep/handler/signalHandler.h"
 #include "ep/handler/eventHandler.h"
 #include "util/logger.h"
 #include "ep/epoll_loop.h"
