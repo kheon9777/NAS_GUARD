@@ -3,6 +3,7 @@
 
 namespace RS::scnet {
 int ready_rawsock();
+void close_rawsock(int fd);
 int rawsock_do(int fd);
 }
 
