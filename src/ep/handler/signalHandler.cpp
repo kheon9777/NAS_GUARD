@@ -6,15 +6,17 @@
 #include <cerrno>
 #include <system_error>
 
+#include "block/blocker.h"
 #include "ep/epoll_loop.h"
 #include "util/logger.h"
 
 namespace RS::ep {
-signalHandler::signalHandler() : fd_(-1) {
+signalHandler::signalHandler(block::blocker& blocker) : fd_(-1), blocker_(blocker) {
     sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIGTERM);
     sigaddset(&mask, SIGHUP);
+    sigaddset(&mask, SIGCHLD);      // nft 자식 프로세스 종료 통지
     if(sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
         throw std::system_error(errno, std::generic_category(), "signalHandler > construc > sigprocmask");
     }
@@ -50,6 +52,9 @@ eventHandlerResult signalHandler::on_readable() noexcept {
     }
     case SIGHUP:
         // TODO : sighup
+        break;
+    case SIGCHLD:
+        blocker_.reap();
         break;
     default:
         break;

@@ -5,6 +5,7 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#include <new>
 
 #include "packet/ip_ICMP_RS.h"
 #include "packet/ip_TCP_RS.h"
@@ -74,7 +75,11 @@ const size_t ip_header_len, const size_t tot_len, int& rescode) {
             rescode = -10;
             break;
         }
-        res.reset(new packet::ip_TCP_RS{ip, tcp});
+        res.reset(new(std::nothrow) packet::ip_TCP_RS{ip, tcp});
+        if(!res) {                      // 메모리 할당 실패
+            rescode = -11;
+            break;
+        }
         res->set_payload_len(tot_len - ip_header_len - tcp_header_len);
         break;
     }
@@ -88,7 +93,11 @@ const size_t ip_header_len, const size_t tot_len, int& rescode) {
             break;
         }
         const udphdr* udp = reinterpret_cast<const udphdr*>(l4);
-        res.reset(new packet::ip_UDP_RS{ip, udp});
+        res.reset(new(std::nothrow) packet::ip_UDP_RS{ip, udp});
+        if(!res) {
+            rescode = -11;
+            break;
+        }
         res->set_payload_len(tot_len - ip_header_len - sizeof(udphdr));
         break;
     }
@@ -102,7 +111,11 @@ const size_t ip_header_len, const size_t tot_len, int& rescode) {
             break;
         }
         const icmphdr* icmp = reinterpret_cast<const icmphdr*>(l4);
-        res.reset(new packet::ip_ICMP_RS{ip, icmp});
+        res.reset(new(std::nothrow) packet::ip_ICMP_RS{ip, icmp});
+        if(!res) {
+            rescode = -11;
+            break;
+        }
         res->set_payload_len(tot_len - ip_header_len - sizeof(icmphdr));
         break;
     }

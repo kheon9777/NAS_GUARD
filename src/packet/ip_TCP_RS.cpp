@@ -12,16 +12,13 @@ ip_TCP_RS::ip_TCP_RS(const iphdr* ip, const tcphdr* tcp)
     if(tcp->rst) flag_rst_ = true;
     if(tcp->ack) flag_ack_ = true;
 }
-ip_TCP_RS::~ip_TCP_RS() {
-}
 bool ip_TCP_RS::is_flag_S() const {
     return flag_syn_ && !flag_ack_;
 }
 bool ip_TCP_RS::is_flag_no_ACK() const {
     return !flag_ack_;
 }
-void ip_TCP_RS::print(std::ostream &os) const
-{
+void ip_TCP_RS::print(std::ostream& os) const {
     os << "TCP " << src_str() << ":" << sport_ << " -> " << dst_str() << ":" << dport_ << " [";
     if(flag_syn_) os << "S";
     if(flag_fin_) os << "F";

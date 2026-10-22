@@ -20,7 +20,6 @@ private:
     uint16_t dport_;
 public:
     ip_TCP_RS(const iphdr* ip, const tcphdr* tcp);
-    ~ip_TCP_RS();
     bool is_flag_S() const;
     bool is_flag_no_ACK() const;
     void print(std::ostream& os) const override;

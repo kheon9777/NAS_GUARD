@@ -17,6 +17,7 @@ private:
     uint8_t type_;      // other type
 public:
     ip_ICMP_RS(const iphdr* ip, const icmphdr* icmp);
+    bool is_echo_request() const;
     void print(std::ostream& os) const override;
 };
 

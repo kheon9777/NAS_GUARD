@@ -12,10 +12,12 @@ namespace RS::detect {
  */
 class analyzer {
 private:
-    rate_detector rate_tcp_;
+    rate_detector rate_tcp_;    // ACK 없는 TCP
+    rate_detector rate_icmp_;   // ICMP echo request
 public:
     explicit analyzer(const config& con);
     verdict analyze(const packet::ip_RS& ip);
+    void expire(time_point now);                            // 모든 감지기의 expire() 호출
 };
 
 }

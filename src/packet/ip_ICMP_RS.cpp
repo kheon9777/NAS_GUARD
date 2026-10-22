@@ -12,6 +12,10 @@ ip_ICMP_RS::ip_ICMP_RS(const iphdr* ip, const icmphdr* icmp)
     type_ = icmp->type;
 }
 
+bool ip_ICMP_RS::is_echo_request() const {
+    return type_echo_;
+}
+
 void ip_ICMP_RS::print(std::ostream& os) const {
     os << "ICMP " << src_str() << " -> " << dst_str();
     if(type_echo_) os << " echo";

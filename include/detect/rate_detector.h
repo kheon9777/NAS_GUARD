@@ -22,6 +22,7 @@ private:
 public:
     explicit rate_detector(const detector_config& con);
     verdict feed(uint32_t ip, time_point now);
+    void expire(time_point now);                            // 창 안에 이벤트가 하나도 없는 IP를 삭제
 };
 
 }

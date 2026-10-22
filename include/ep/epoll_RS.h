@@ -16,7 +16,7 @@ private:
     int fd_;
     int timeout_;
     epoll_event event_list_[MAX_EVENTS] = {};
-    void do_task(int event_count);
+    bool do_task(int event_count);      // 핸들러가 error를 돌려주면 false
 public:
     /**
      * timeout : ms단위, 무조건 0이상
@@ -26,7 +26,8 @@ public:
     enum class result : int {
         timeout,
         has_event,
-        interrupted
+        interrupted,
+        error           // epoll_wait 실패 (EINTR 제외). errno 보존됨
     };
     int fd() const;
     eventHandler& add(std::unique_ptr<eventHandler> handler);

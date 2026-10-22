@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstdint>
+#include <cstring>
 #include <system_error>
 
 #include "scnet/parser.h"
@@ -41,7 +42,9 @@ std::unique_ptr<packet::ip_RS> rawsock_recv(int fd, int& rescode) {
 
     ssize_t len = recvfrom(fd, buffer, sizeof(buffer), 0, reinterpret_cast<sockaddr*>(&form), &form_len);
     if(len < 0) {
-        util::logger("rawsock_recv > recvfrom");
+        int err = errno; // 로그 출력이 errno를 건드릴 수 있어 보존
+        util::logger("rawsock_recv > recvfrom: ", std::strerror(err));
+        errno = err; // 호출자가 errno로 치명 여부를 판단
         rescode = -2;
         return nullptr;
     }

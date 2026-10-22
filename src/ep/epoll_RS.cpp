@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 #include <cerrno>
+#include <cstring>
 #include <system_error>
 
 #include "util/logger.h"
@@ -47,20 +48,24 @@ epoll_RS::result epoll_RS::wait() {
         if(errno == EINTR) { // ctrl_z
             return result::interrupted;
         }
-        throw std::system_error(errno, std::generic_category(), "epoll_RS > wait > epoll_wait");
+        util::logger("epoll_RS > wait > epoll_wait: ", std::strerror(errno));
+        return result::error;   // 루프 경로라 던지지 않고 반환
     } else if(ret == 0) {
         return result::timeout;
     } else {
-        do_task(ret);
-        return result::has_event;
+        return do_task(ret) ? result::has_event : result::error;
     }
 }
 
-void epoll_RS::do_task(int event_count) {
+// 핸들러가 복구 불가(error)를 돌려주면 즉시 false. fd를 비우지 못한 채 계속 깨어나는 무한 반복을 막는다
+bool epoll_RS::do_task(int event_count) {
     for(int i = 0; i < event_count; i++) {
         eventHandler* handler = static_cast<eventHandler*>(event_list_[i].data.ptr);
-        handler->on_readable();
+        if(handler->on_readable() == eventHandlerResult::error) {
+            return false;
+        }
     }
+    return true;
 }
 
 }
