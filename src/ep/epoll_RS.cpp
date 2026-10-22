@@ -1,13 +1,9 @@
 #include "ep/epoll_RS.h"
 
-#include <sys/epoll.h>
 #include <unistd.h>
-#include <vector>
-#include <memory>
 #include <cerrno>
 #include <system_error>
 
-#include "ep/handler/eventHandler.h"
 #include "util/logger.h"
 
 namespace RS::ep {

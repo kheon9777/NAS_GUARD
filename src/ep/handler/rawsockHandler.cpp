@@ -1,11 +1,10 @@
 #include "ep/handler/rawsockHandler.h"
 
-#include <iostream>
-#include <string>
+#include <cerrno>
+#include <system_error>
 
-#include "util/logger.h"
-#include "ep/handler/eventHandler.h"
 #include "scnet/rawsock.h"
+#include "util/logger.h"
 
 namespace RS::ep {
     rawsockHandler::rawsockHandler() : fd_(-1) {    // TODO : 차단 ip목록 등에 대해 생성자 주입, 필드에 ip관리 클래스 레퍼런스를 가질 예정

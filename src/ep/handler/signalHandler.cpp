@@ -1,14 +1,13 @@
 #include "ep/handler/signalHandler.h"
 
+#include <signal.h>
 #include <sys/signalfd.h>
 #include <unistd.h>
-#include <signal.h>
 #include <cerrno>
 #include <system_error>
 
-#include "ep/handler/eventHandler.h"
-#include "util/logger.h"
 #include "ep/epoll_loop.h"
+#include "util/logger.h"
 
 namespace RS::ep {    
     signalHandler::signalHandler() : fd_(-1) {

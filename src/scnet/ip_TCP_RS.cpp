@@ -1,13 +1,6 @@
 #include "scnet/ip_TCP_RS.h"
 
-#include <netinet/ip.h>
-#include <netinet/tcp.h>      
 #include <netinet/in.h>
-#include <iostream>
-#include <string>
-#include <memory>
-
-#include "scnet/ip_RS.h"
 
 namespace RS::scnet {
 ip_TCP_RS::ip_TCP_RS(const iphdr *ip, const tcphdr *tcp)

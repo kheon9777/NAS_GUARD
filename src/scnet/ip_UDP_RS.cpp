@@ -1,13 +1,6 @@
 #include "scnet/ip_UDP_RS.h"
 
-#include <netinet/ip.h>
-#include <netinet/udp.h>      
 #include <netinet/in.h>
-#include <iostream>
-#include <string>
-#include <memory>
-
-#include "scnet/ip_RS.h"
 
 namespace RS::scnet {
 

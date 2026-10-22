@@ -1,10 +1,8 @@
 // logger.cpp
-#include <iostream>
+#include "util/logger.h"
+
 #include <chrono>
 #include <ctime>
-#include <string>
-
-#include "util/logger.h"
 
 namespace RS::util {
 std::string now_yyyymmddhhmmss() {

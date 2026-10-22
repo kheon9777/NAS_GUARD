@@ -1,9 +1,9 @@
 #ifndef EPOLL_RS_H
 #define EPOLL_RS_H
 
+#include <sys/epoll.h>
 #include <memory>
 #include <vector>
-#include <sys/epoll.h>
 
 #include "ep/handler/eventHandler.h"
 

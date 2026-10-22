@@ -1,12 +1,5 @@
 #include "scnet/ip_ICMP_RS.h"
 
-#include <netinet/ip.h>
-#include <iostream>
-#include <string>
-#include <memory>
-
-#include "scnet/ip_RS.h"
-
 namespace RS::scnet {
 
 ip_ICMP_RS::ip_ICMP_RS(const iphdr *ip, const icmphdr *icmp) 

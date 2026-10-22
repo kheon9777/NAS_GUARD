@@ -1,20 +1,7 @@
 #include "scnet/ip_RS.h"
 
 #include <arpa/inet.h>
-#include <netinet/ip.h>
 #include <sys/socket.h>
-#include <netinet/tcp.h>      
-#include <netinet/udp.h>      
-#include <netinet/ip_icmp.h>  
-#include <netinet/in.h>
-#include <iostream>
-#include <cstdint>
-#include <string>
-#include <unordered_map>
-#include <memory>
-
-#include "util/logger.h"
-#include "scnet/ip_RS.h"
 
 namespace RS::scnet {
 void ip_RS::print(std::ostream &os) const {

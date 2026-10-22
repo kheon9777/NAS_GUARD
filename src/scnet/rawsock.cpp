@@ -1,21 +1,16 @@
 #include "scnet/rawsock.h"
 
-#include <arpa/inet.h>  
-#include <linux/if_ether.h>  
-#include <linux/if_packet.h>   
-#include <netinet/in.h> 
-#include <netinet/ip.h>
+#include <linux/if_ether.h>
+#include <linux/if_packet.h>
+#include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
-#include <sys/socket.h>  
-#include <unistd.h>   
-
+#include <sys/socket.h>
+#include <unistd.h>
 #include <cerrno>
-#include <cstdint>
-#include <cstring>      
+#include <cstring>
 #include <iostream>
-#include <memory>
 #include <system_error>
 
 #include "scnet/ip_ICMP_RS.h"
