@@ -10,8 +10,7 @@
 #define MAX_EVENTS 20
 
 namespace RS::ep {
-class epoll_RS
-{
+class epoll_RS {
 private:
     std::vector<std::unique_ptr<eventHandler>> handlers_;
     int fd_;

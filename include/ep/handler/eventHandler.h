@@ -7,7 +7,7 @@ enum class eventHandlerResult : int {
 };
 
 class eventHandler {
-public: 
+public:
     virtual ~eventHandler() = default;
     virtual int fd() const = 0;
     virtual eventHandlerResult on_readable() noexcept = 0;
@@ -22,7 +22,7 @@ protected:
 // private:
 //     int fd_;
 //     int val_;
-// public: 
+// public:
 //     int fd() const override {
 //         return fd_;
 //     }

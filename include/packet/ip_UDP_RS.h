@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <ostream>
 
-#include "scnet/ip_RS.h"
+#include "packet/ip_RS.h"
 
-namespace RS::scnet {
+namespace RS::packet {
 
 class ip_UDP_RS : public ip_RS {
 private:
@@ -17,6 +17,8 @@ private:
 public:
     ip_UDP_RS(const iphdr* ip, const udphdr* udp);
     void print(std::ostream& os) const override;
+    uint16_t sport() const;
+    uint16_t dport() const;
 };
 }
 

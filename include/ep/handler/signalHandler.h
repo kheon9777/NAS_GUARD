@@ -4,15 +4,15 @@
 #include "ep/handler/eventHandler.h"
 
 namespace RS::ep {
-    class signalHandler : public eventHandler{
-    private:
-        int fd_;
-    public:
-        signalHandler();
-        ~signalHandler();
-        int fd() const override;
-        eventHandlerResult on_readable() noexcept override;
-    };
+class signalHandler : public eventHandler{
+private:
+    int fd_;
+public:
+    signalHandler();
+    ~signalHandler();
+    int fd() const override;
+    eventHandlerResult on_readable() noexcept override;
+};
 }
 
 #endif

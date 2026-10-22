@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <ostream>
 
-#include "scnet/ip_RS.h"
+#include "packet/ip_RS.h"
 
-namespace RS::scnet {
+namespace RS::packet {
 
 class ip_ICMP_RS : public ip_RS {
 private:

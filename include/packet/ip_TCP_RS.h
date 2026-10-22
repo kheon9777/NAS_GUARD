@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <ostream>
 
-#include "scnet/ip_RS.h"
+#include "packet/ip_RS.h"
 
-namespace RS::scnet {
+namespace RS::packet {
 
 class ip_TCP_RS : public ip_RS {
 private:
@@ -22,7 +22,10 @@ public:
     ip_TCP_RS(const iphdr* ip, const tcphdr* tcp);
     ~ip_TCP_RS();
     bool is_flag_S() const;
+    bool is_flag_no_ACK() const;
     void print(std::ostream& os) const override;
+    uint16_t sport() const;
+    uint16_t dport() const;
 };
 
 }

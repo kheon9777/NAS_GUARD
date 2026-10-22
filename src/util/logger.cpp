@@ -1,4 +1,3 @@
-// logger.cpp
 #include "util/logger.h"
 
 #include <chrono>

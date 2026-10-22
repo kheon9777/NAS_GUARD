@@ -7,8 +7,7 @@
 #include "util/logger.h"
 
 namespace RS::ep {
-epoll_RS::epoll_RS(int timeout) : fd_(epoll_create1(0)), timeout_(timeout)
-{
+epoll_RS::epoll_RS(int timeout) : fd_(epoll_create1(0)), timeout_(timeout) {
     if(timeout <= 0) {
         throw std::system_error(errno, std::generic_category(), "epoll_RS > timeout should be over 0");
     }
@@ -18,8 +17,7 @@ epoll_RS::epoll_RS(int timeout) : fd_(epoll_create1(0)), timeout_(timeout)
     RS::util::logger("ep opened");
 }
 
-epoll_RS::~epoll_RS()
-{
+epoll_RS::~epoll_RS() {
     if(fd_ >= 0) {
         close(fd_);
         RS::util::logger("epoll_RS closed");
@@ -50,7 +48,7 @@ epoll_RS::result epoll_RS::wait() {
             return result::interrupted;
         }
         throw std::system_error(errno, std::generic_category(), "epoll_RS > wait > epoll_wait");
-    } else if (ret == 0) {
+    } else if(ret == 0) {
         return result::timeout;
     } else {
         do_task(ret);

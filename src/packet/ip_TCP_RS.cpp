@@ -1,9 +1,9 @@
-#include "scnet/ip_TCP_RS.h"
+#include "packet/ip_TCP_RS.h"
 
 #include <netinet/in.h>
 
-namespace RS::scnet {
-ip_TCP_RS::ip_TCP_RS(const iphdr *ip, const tcphdr *tcp)
+namespace RS::packet {
+ip_TCP_RS::ip_TCP_RS(const iphdr* ip, const tcphdr* tcp)
 : ip_RS(ip, ip_RS_type::TCP), flag_syn_(false), flag_fin_(false), flag_rst_(false), flag_ack_(false) {
     sport_ = ntohs(tcp->th_sport);
     dport_ = ntohs(tcp->th_dport);
@@ -17,13 +17,22 @@ ip_TCP_RS::~ip_TCP_RS() {
 bool ip_TCP_RS::is_flag_S() const {
     return flag_syn_ && !flag_ack_;
 }
-void ip_TCP_RS::print(std::ostream &os) const {
-    os << "TCP " << src() << ":" << sport_ << " -> " << dst() << ":" << dport_ << " [";
+bool ip_TCP_RS::is_flag_no_ACK() const {
+    return !flag_ack_;
+}
+void ip_TCP_RS::print(std::ostream &os) const
+{
+    os << "TCP " << src_str() << ":" << sport_ << " -> " << dst_str() << ":" << dport_ << " [";
     if(flag_syn_) os << "S";
     if(flag_fin_) os << "F";
     if(flag_rst_) os << "R";
     if(flag_ack_) os << ".";
     os << "]";
 }
-
+uint16_t ip_TCP_RS::sport() const {
+    return sport_;
+}
+uint16_t ip_TCP_RS::dport() const {
+    return dport_;
+}
 }

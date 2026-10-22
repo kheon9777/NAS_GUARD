@@ -1,21 +1,23 @@
 #ifndef IP_RS_H
 #define IP_RS_H
 
-#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <cstddef>
 #include <cstdint>
 #include <ostream>
+#include <string>
 
-namespace RS::scnet {
+namespace RS::packet {
 enum class ip_RS_type {
     TCP, UDP, ICMP
 };
 
 class ip_RS {
 private:
-    char src_[INET_ADDRSTRLEN];
-    char dst_[INET_ADDRSTRLEN];
+    // char src_[INET_ADDRSTRLEN];
+    // char dst_[INET_ADDRSTRLEN];
+    uint32_t src_;
+    uint32_t dst_;
     ip_RS_type proto_;
 protected:
     size_t payload_len_;
@@ -25,8 +27,10 @@ protected:
 public:
     ip_RS(const iphdr* ip, const ip_RS_type proto);
     virtual ~ip_RS() = default;
-    const char* src() const;
-    const char* dst() const;
+    const uint32_t& src() const;
+    const uint32_t& dst() const;
+    std::string src_str() const;
+    std::string dst_str() const;
     ip_RS_type proto() const;
     bool is_proto(ip_RS_type val) const;
     uint8_t is_fault() const;
