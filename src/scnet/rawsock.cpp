@@ -32,9 +32,9 @@ void close_rawsock(int fd) {
 }
 
 /**
- * rescode 정상:ip_RS,code=0, 에러:nullptr,code<0, 제외(스킵):nullptr,code>0
+ * rescode 정상:frame_RS(ip_RS 또는 arp_RS),code=0, 에러:nullptr,code<0, 제외(스킵):nullptr,code>0
  */
-std::unique_ptr<packet::ip_RS> rawsock_recv(int fd, int& rescode) {
+std::unique_ptr<packet::frame_RS> rawsock_recv(int fd, int& rescode) {
     uint8_t buffer[65536];
     sockaddr_ll form;
     socklen_t form_len = sizeof(form);
@@ -42,9 +42,9 @@ std::unique_ptr<packet::ip_RS> rawsock_recv(int fd, int& rescode) {
 
     ssize_t len = recvfrom(fd, buffer, sizeof(buffer), 0, reinterpret_cast<sockaddr*>(&form), &form_len);
     if(len < 0) {
-        int err = errno; // 로그 출력이 errno를 건드릴 수 있어 보존
-        util::logger("rawsock_recv > recvfrom: ", std::strerror(err));
-        errno = err; // 호출자가 errno로 치명 여부를 판단
+        int err = errno;	// 로그 출력이 errno를 건드릴 수 있어 보존
+        util::warn("rawsock_recv > recvfrom: ", std::strerror(err));
+        errno = err;	// 호출자가 errno로 치명 여부를 판단
         rescode = -2;
         return nullptr;
     }

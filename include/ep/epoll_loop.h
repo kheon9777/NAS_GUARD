@@ -8,6 +8,6 @@ namespace RS::ep {
  * 1 : 치명적 오류 (초기화 실패, epoll_wait 실패). systemd Restart=on-failure가 재시작하도록 0이 아닌 값
  */
 int do_loop();
-void set_g_working(bool val);
+void set_g_working(bool val);	// false면 루프가 다음 wait() 뒤에 끝난다. signalHandler가 SIGTERM/SIGINT에 호출
 }
 #endif

@@ -1,10 +1,9 @@
-# PROTECT_RASPI
+# NAS_GUARD
 
-라즈베리파이 NAS를 외부에 열어 두었을 때 들어오는 공격(포트 스캔, 연속 접속 시도)을 raw 소켓으로 감지하고 nftables로 차단하는 데몬 `guard`.
+라즈베리파이 NAS를 외부에 열어 두었을 때 들어오는 공격을 감지하고 차단하는 데몬 `guard`    
+C++20, Linux 전용 (raw 소켓, epoll, nftables, SQLite)
 
-## 디렉터리 구조
-
-패킷이 흐르는 순서대로 계층을 나눴다. 의존은 `ep`에서 바깥으로만 향하고, 아래 계층은 위 계층을 모른다.
+## 구조
 
 ```
 ep ──→ scnet ──→ packet
@@ -13,47 +12,131 @@ ep ──→ scnet ──→ packet
  └───→ store
 ```
 
-| 디렉터리 | 네임스페이스 | 역할 | 상태 |
-|---|---|---|---|
-| `ep/` | `RS::ep` | epoll 이벤트 루프와 핸들러. `rawsockHandler`가 아래 계층들을 받아 수신 → 판정 → 차단 → 기록 순서로 호출한다. 타이머, 시그널도 핸들러로 붙는다. | 구현됨 |
-| `scnet/` | `RS::scnet` | 수신·해석. `rawsock`이 AF_PACKET 소켓으로 프레임을 받고, `parser`가 이더넷·IP·L4 헤더를 검증해 `packet` 객체로 만든다. 무엇을 감지할지는 모른다. | 구현됨 |
-| `packet/` | `RS::packet` | 해석된 패킷 타입. `ip_RS`와 하위 `ip_TCP_RS`, `ip_UDP_RS`, `ip_ICMP_RS`. 다른 디렉터리에 의존하지 않는다. | 구현됨 |
-| `detect/` | `RS::detect` | 판정. `analyzer`가 감지기들을 소유하고 패킷 종류별로 분배한다. 감지기는 출발지 IP별 슬라이딩 윈도우 기록을 들고 임계치를 넘는지 본다. 임계치·창은 `config.h`. | `rate_detector` 구현됨, `port_scan_detector` 예정 |
-| `block/` | `RS::block` | 차단. `whitelist`는 감지·차단 제외 대상(단일 IP, 대역). `blocker`가 nftables set에 IP를 timeout과 함께 넣고, 메모리에 차단 목록을 유지한다. | `whitelist` 구현됨, `blocker` 예정 |
-| `store/` | `RS::store` | 기록. 감지·차단 이력과 LAN 장비 목록을 SQLite에 저장한다. | 예정 |
-| `util/` | `RS::util` | 공용 도구. 타임스탬프 로거. | 구현됨 |
-| `expr/` | — | 단계별 실험 코드. 빌드에 포함되지 않으며 각 파일 상단의 `g++` 명령으로 따로 빌드한다. | — |
-
-`include/`와 `src/`는 같은 하위 구조를 가진다. 헤더는 `include/` 기준 경로로 포함한다 (`#include "ep/epoll_RS.h"`).
-
-## 패킷 하나의 흐름
+| 디렉터리 | 역할 |
+|---|---|
+| `ep/` | 이벤트 루프. epoll에 raw 소켓, 타이머, 시그널, DB 완료 알림을 핸들러로 붙이고, 수신 -> 판정 -> 차단 -> 기록 순서로 부른다 |
+| `scnet/` | 수신과 해석. raw 소켓에서 프레임을 받아 이더넷, ARP, IP, L4 헤더를 검증하고 `packet` 객체로 만든다 |
+| `packet/` | 해석된 패킷 데이터. IP(TCP, UDP, ICMP)와 ARP. 다른 디렉터리를 모른다 |
+| `detect/` | 판정. IP별 슬라이딩 윈도우로 임계치를 보는 감지기와, ARP로 LAN 장비를 추적하는 장비 감지 |
+| `block/` | 차단. 화이트리스트와 nftables set에 IP를 timeout과 함께 넣는 blocker |
+| `store/` | 기록. 설정, 화이트리스트, 차단 이력, 장비 목록을 SQLite에 읽고 쓴다 (쓰기는 워커 스레드) |
+| `util/` | 로거, 프로세스 정보 |
+| `expr/` | 단계별 실험 코드. 빌드에 포함되지 않는다 |
+| `deploy/` | systemd 유닛 파일 |
 
 ```
-rawsockHandler::on_readable()
-  1. scnet::rawsock_recv()        프레임 수신 → parser → packet::ip_RS
-  2. whitelist / 이미 차단된 IP   → 스킵
-  3. detect                       프로토콜별 조건에 맞는 패킷만 감지기에 전달
-       TCP  : ACK 비트 없는 패킷 (SYN, 스텔스 스캔)
-       UDP  : 목적지 포트 < 32768 (내 질의의 응답 제외)
-       ICMP : echo request
-  4. 임계치 초과 → block           nft blocklist 추가 (timeout 후 자동 해제)
-  5. store                        감지·차단 이력 기록
+rawsockHandler::on_readable() : epoll 이벤트수신시 처리하는 공용 함수
+  1. 프레임 수신, 해석            scnet -> packet
+  2. ARP면 장비 감지로            detect::device_tracker
+  3. 이미 차단됨 / 화이트리스트   스킵
+  4. 감지기                       TCP: ACK 없는 패킷, ICMP: echo request
+  5. 임계치 초과                  block (nft blocklist, timeout 뒤 자동 해제)
+  6. 기록                         store (차단 이력, 장비 이벤트)
 ```
+
+설정과 화이트리스트는 DB `guard.db`에서 읽고 `SIGHUP`으로 다시 읽는다.
+웹 콘솔은 별도 프로젝트 [NAS_GUARD_WEB](https://github.com/kheon9777/NAS_GUARD_WEB) 
 
 ## 빌드 / 실행
 
 ```sh
-make              # 릴리스 빌드 -> build/release/guard
-make DEBUG=1      # 디버그 빌드 -> build/debug/guard (ASan/UBSan)
+make              # build/release/guard
+make DEBUG=1      # build/debug/guard (ASan/UBSan), 최적화X, gdb옵션붙음
 make run          # 빌드 후 sudo로 실행
-make clean
+./deploy.sh       # 서비스 디렉터리로 복사하고 systemd guard 재시작
 ```
+root 권한 필수
 
-raw 소켓과 nftables를 쓰므로 root 권한이 필요하다. 링크 라이브러리: `-lsqlite3`.
+## 히스토리
 
-## 목표 기능
+패킷 받는 테스트 (expr 테스트코드)
+-----------------------------------
+- raw 소켓으로 프레임 덤프  
+ ㄴ AF_PACKET 소켓을 열고 들어오는 프레임을 그대로 출력
+- 프로토콜별로 나누어 해석  
+ ㄴ 이더넷, IP 헤더를 읽고 TCP, UDP, ICMP를 갈라서 출력  
+ ㄴ 매크로로 보고 싶은 프로토콜만 선택
+- 필터와 이력 기록  
+ ㄴ 특정 패킷만 걸러 보고, ICMP 수신 이력을 시간과 함께 쌓아 보기
+- 타이머 클래스 작성  
+ ㄴ 경과 시간을 재는 클래스. 이후 std::chrono 기반으로 다시 정리
 
-1. 포트 스캔 차단
-2. 연속 TCP 요청 차단 (화이트리스트 제외)
-3. 새 장비 감지 및 장비 관제
-4. (선택) 같은 IP의 MAC이 바뀌면 ARP 스푸핑 경고
+판정/차단/기록 테스트 (expr 테스트코드)
+-----------------------------------
+- 포트 스캔 판정  
+ ㄴ 출발지 IP별로 최근 N초 안에 두드린 포트를 모아 두고, 서로 다른 포트가 N개를 넘으면 스캔  
+ ㄴ 자기 자신이 보낸 패킷은 제외
+- nftables 차단  
+ ㄴ 테이블, set, 체인을 만드는 setup/teardown 스크립트  
+ ㄴ 판정된 IP를 timeout과 함께 set에 넣고 자동 해제 확인
+- SQLite 기록  
+ ㄴ DB 연결과 준비된 문장을 RAII로 감싸기  
+ ㄴ 차단 이력 저장, 만료 안 된 차단을 다시 읽는 쿼리
+
+메인코드
+-----------------------------------
+- 디렉터리와 네임스페이스 분리  
+ ㄴ 수신, 패킷, 판정, 차단, 기록, 이벤트 루프, 공용 도구로 나누고 의존 방향을 한쪽으로 고정  
+ ㄴ include/와 src/를 같은 구조로
+- IP 패킷 구조체들의 공용 클래스화  
+ ㄴ TCP, UDP, ICMP를 공용 베이스 아래 하위 클래스로. 출력은 가상 함수  
+ ㄴ 포인터 오프셋 계산은 베이스에 한 번만
+- 소켓과 해석기 분리  
+ ㄴ 바이트 버퍼만 받는 파서를 따로 두어 root 없이 테스트할 수 있게  
+ ㄴ 결과 코드 규칙 정리 (정상, 오류, 의도한 제외)
+- epoll 이벤트 루프  
+ ㄴ 핸들러 인터페이스를 두고 raw 소켓을 첫 핸들러로  
+ ㄴ 이후 타이머, 시그널, DB 알림이 같은 모양으로 붙음
+- 로거  
+ ㄴ 레벨, 타임스탬프, stdout과 파일 동시 출력  
+ ㄴ 루프 경로에서 던지지 않도록
+
+감지/차단
+-----------------------------------
+- rate 감지기와 분배기  
+ ㄴ TCP ACK 없는 패킷, ICMP echo request 감시
+ ㄴ analyzer가 패킷 종류별로 감지기에 나눠 줌. IP별 기록 상한으로 메모리 제한
+- 화이트리스트  
+ ㄴ 단일 IP와 대역  
+ ㄴ 개인 IP가 들어가는 상수 표는 gitignore 되는 로컬 헤더로 분리
+- 차단기  
+ ㄴ nft 명령을 fork/exec로 실행하고 SIGCHLD로 회수  
+ ㄴ !!! 시작 때 테이블과 set은 두고 체인만 다시 만들어 재시작해도 차단 유지 !!! 
+
+설정/기록
+-----------------------------------
+- 설정파일 통합
+ ㄴ 매크로로 뒀던 설정변수들 파일 하나로 통합  
+- DB 계층  
+ ㄴ 초기화용 동기 호출 / 루프용 비동기 큐(실행결과 나오면 epoll루프에서 회수됨)  
+ ㄴ 차단 이력 기록, 화이트리스트도 DB에 저장
+- 타이머 핸들러  
+ ㄴ 만료 정리(차단, 감지 기록)랑 메모리 상태 기록 timerfd로 실행
+- 시그널 핸들러  
+ ㄴ signalfd로 정상 종료. 종료 코드를 systemd 재시작 조건에 맞춤
+
+장비 감지
+-----------------------------------
+- ARP 해석 추가  
+ ㄴ 프레임 베이스를 두고 IP와 ARP를 그 아래로  
+- LAN 장비 추적  
+ ㄴ ARP sender로 장비 목록을 만들고 새 장비, 사라진 장비, IP의 MAC 변경을 이벤트로 기록  
+ ㄴ 짧은 시간에 MAC이 여러 번 바뀌면 ARP 스푸핑 알람 (차단은 안 함)
+- 재시작 때 장비 복원  
+ ㄴ DB의 장비 목록을 읽어 전부 새 장비로 뜨지 않게  
+ ㄴ last_seen은 모아서 주기적으로 반영
+
+운영
+-----------------------------------
+- SIGHUP 리로드  
+ ㄴ 설정과 화이트리스트를 DB에서 다시 읽어 재시작 없이 적용  
+- 서비스 배포  
+ ㄴ systemd 유닛과 배포 스크립트  
+- 웹 콘솔  
+ ㄴ 설정, 화이트리스트, 장비, 차단 기록을 열람
+ ㄴ 별도 프로젝트(NAS_GUARD_WEB)로 분리
+
+TODO
+-----------------------------------
+- 포트 스캔 감지기  
+- 알람 외부알림(?)

@@ -1,0 +1,25 @@
+#ifndef WHITELIST_LOCAL_H
+#define WHITELIST_LOCAL_H
+
+/**
+ * 이 파일을 whitelist.local.h로 복사한 뒤 자기 환경에 맞게 채움
+ *
+ * mask가 nullptr이면 단일 IP, 아니면 (network, mask) 대역.
+ */
+namespace RS::block {
+
+struct whitelist_entry {
+    const char* ip;
+    const char* mask;	// nullptr : 단일 IP
+    const char* note;	// 로그용 설명
+};
+
+inline constexpr whitelist_entry WHITELIST_ENTRIES[] = {
+    {"127.0.0.0", "255.0.0.0", "loopback"},
+    {"192.168.0.0", "255.255.255.0", "home LAN"},
+    {"203.0.113.10", nullptr, "remote access IP"},
+};
+
+}
+
+#endif

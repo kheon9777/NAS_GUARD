@@ -1,30 +1,58 @@
 #include "scnet/parser.h"
 
 #include <linux/if_ether.h>
+#include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <new>
 
+#include "packet/arp_RS.h"
 #include "packet/ip_ICMP_RS.h"
 #include "packet/ip_TCP_RS.h"
 #include "packet/ip_UDP_RS.h"
 
 namespace RS::scnet {
 
-std::unique_ptr<packet::ip_RS> parse_frame(const uint8_t* frame, size_t len, int& rescode) {
+std::unique_ptr<packet::frame_RS> parse_frame(const uint8_t* frame, size_t len, int& rescode) {
     rescode = 0;
 
-    if(len < sizeof(ethhdr) + sizeof(iphdr)) {
+    if(len < sizeof(ethhdr)) {
         rescode = -3;
         return nullptr;
     }
-
-    // 4. Ethernet 헤더 해석, IPv4만 통과
     const ethhdr* eth = reinterpret_cast<const ethhdr*>(frame);
-    if(ntohs(eth->h_proto) != ETH_P_IP) {
+    uint16_t eth_type = ntohs(eth->h_proto);
+
+    // ARP: 장비 감지용. sender(MAC, IP)만 쓴다
+    if(eth_type == ETH_P_ARP) {
+        if(len < sizeof(ethhdr) + sizeof(ether_arp)) {
+            rescode = -12;
+            return nullptr;
+        }
+        const ether_arp* arp = reinterpret_cast<const ether_arp*>(frame + sizeof(ethhdr));
+        if(ntohs(arp->arp_hrd) != ARPHRD_ETHER || ntohs(arp->arp_pro) != ETH_P_IP
+        || arp->arp_hln != 6 || arp->arp_pln != 4) {	// 이더넷 + IPv4 ARP만
+            rescode = -13;
+            return nullptr;
+        }
+        std::unique_ptr<packet::frame_RS> res(new(std::nothrow) packet::arp_RS{arp});
+        if(!res) {
+            rescode = -11;
+            return nullptr;
+        }
+        res->set_src_mac(eth->h_source);
+        return res;
+    }
+
+    // 4. IPv4만 통과
+    if(eth_type != ETH_P_IP) {
         rescode = -4;
+        return nullptr;
+    }
+    if(len < sizeof(ethhdr) + sizeof(iphdr)) {
+        rescode = -3;
         return nullptr;
     }
 
@@ -51,6 +79,7 @@ std::unique_ptr<packet::ip_RS> parse_frame(const uint8_t* frame, size_t len, int
     std::unique_ptr<packet::ip_RS> target = get_ip_RS(ip, l4, l4avail, ip_header_len, tot_len, get_ip_resultcode);
     if(target == nullptr) rescode = -7;
     if(get_ip_resultcode != 0) rescode = get_ip_resultcode;
+    if(target) target->set_src_mac(eth->h_source);
 
     return target;
 }
@@ -61,7 +90,7 @@ const size_t ip_header_len, const size_t tot_len, int& rescode) {
     rescode = 0;
     switch(ip->protocol) {
     case IPPROTO_TCP: {
-        if(l4avail < sizeof(tcphdr)) {  // 길이 문제
+        if(l4avail < sizeof(tcphdr)) {	// 길이 문제
             rescode = -8;
             break;
         }
@@ -76,7 +105,7 @@ const size_t ip_header_len, const size_t tot_len, int& rescode) {
             break;
         }
         res.reset(new(std::nothrow) packet::ip_TCP_RS{ip, tcp});
-        if(!res) {                      // 메모리 할당 실패
+        if(!res) {	// 메모리 할당 실패
             rescode = -11;
             break;
         }

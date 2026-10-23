@@ -32,6 +32,7 @@ logs/
 .env
 *.local.conf
 *.local.json
+*.local.h
 config.local.*
 
 # ===== Python (웹 API) =====
@@ -48,4 +49,7 @@ venv/
 *~
 .DS_Store
 
+
+# ===== ETC =====
 CLAUDE.md
+webpy/

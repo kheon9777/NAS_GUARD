@@ -9,9 +9,7 @@ void ip_RS::print(std::ostream& os) const {
     os << src_str() << " -> " << dst_str();
 }
 ip_RS::ip_RS(const iphdr* ip, ip_RS_type proto)
-: src_(ip->saddr), dst_(ip->daddr), proto_(proto), payload_len_(0), is_fault_(0) {
-    // inet_ntop(AF_INET, &ip->saddr, src_, sizeof(src_));
-    // inet_ntop(AF_INET, &ip->daddr, dst_, sizeof(dst_));
+: frame_RS(frame_type::ip), src_(ip->saddr), dst_(ip->daddr), proto_(proto), payload_len_(0), is_fault_(0) {
 }
 const uint32_t& ip_RS::src() const {
     return src_;
@@ -43,9 +41,5 @@ size_t ip_RS::payload_len() const {
 }
 void ip_RS::set_payload_len(size_t val) {
     payload_len_ = val;
-}
-std::ostream& operator << (std::ostream& os, const ip_RS& ip) {
-    ip.print(os);
-    return os;
 }
 }

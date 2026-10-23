@@ -10,8 +10,8 @@ SRC_DIR  := src
 INC_DIR  := include
 
 CXX      := g++
-CXXFLAGS := -std=c++20 -Wall -Wextra -Wpedantic -I$(INC_DIR) -MMD -MP
-LDFLAGS  :=
+CXXFLAGS := -std=c++20 -Wall -Wextra -Wpedantic -pthread -I$(INC_DIR) -MMD -MP
+LDFLAGS  := -pthread
 LDLIBS   := -lsqlite3
 
 ifeq ($(DEBUG),1)

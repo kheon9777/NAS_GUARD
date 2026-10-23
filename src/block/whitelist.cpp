@@ -2,29 +2,33 @@
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <stdexcept>
 
-#include "packet/ip_TCP_RS.h"
-#include "packet/ip_UDP_RS.h"
+#include "block/whitelist.local.h"
+#include "util/logger.h"
 
 namespace RS::block {
-void whitelist::add(const std::string& ip) {
+bool whitelist::add(const std::string& ip) {
     uint32_t ip_net;
     if(inet_pton(AF_INET, ip.c_str(), &ip_net) != 1) {
-        throw std::invalid_argument("whitelist > add > bad ip: " + ip);
+        util::error("whitelist > add > bad ip: ", ip);
+        return false;
     }
     ips_.insert(ip_net);
+    return true;
 }
-void whitelist::add(const std::string& ip, const std::string& mask) {
+bool whitelist::add(const std::string& ip, const std::string& mask) {
     uint32_t ip_net;
     uint32_t mask_net;
     if(inet_pton(AF_INET, ip.c_str(), &ip_net) != 1) {
-        throw std::invalid_argument("whitelist > add > bad ip: " + ip);
+        util::error("whitelist > add > bad ip: ", ip);
+        return false;
     }
     if(inet_pton(AF_INET, mask.c_str(), &mask_net) != 1) {
-        throw std::invalid_argument("whitelist > add > bad mask: " + mask);
+        util::error("whitelist > add > bad mask: ", mask);
+        return false;
     }
-    nets_.push_back({ip_net & mask_net, mask_net});     // 호스트 비트를 지워서 저장
+    nets_.push_back({ip_net & mask_net, mask_net});	// 호스트 비트를 지워서 저장
+    return true;
 }
 bool whitelist::contains(uint32_t ip) const {
     if(ips_.contains(ip)) return true;
@@ -33,18 +37,18 @@ bool whitelist::contains(uint32_t ip) const {
     }
     return false;
 }
-bool whitelist::contains_custom_filter(const packet::ip_RS& target) const {
-    if(target.proto() == packet::ip_RS_type::TCP) {
-        auto& tmp = static_cast<const packet::ip_TCP_RS&>(target);
-        if(tmp.sport() == 22 || tmp.dport() == 22) {    // 22포트 스킵
-            return true;
-        }
-    } else if(target.proto() == packet::ip_RS_type::UDP) {
-        auto& tmp = static_cast<const packet::ip_UDP_RS&>(target);
-        if(tmp.sport() == 22 || tmp.dport() == 22) {    // 22포트 스킵
-            return true;
+
+bool load_local_whitelist(whitelist& wl) {
+    bool ok = true;
+    for(const auto& e : WHITELIST_ENTRIES) {
+        if(e.mask == nullptr) {
+            if(wl.add(e.ip)) util::info("[whitelist] local ", e.ip, " (", e.note, ")");
+            else ok = false;
+        } else {
+            if(wl.add(e.ip, e.mask)) util::info("[whitelist] local ", e.ip, "/", e.mask, " (", e.note, ")");
+            else ok = false;
         }
     }
-    return false;
+    return ok;
 }
 }

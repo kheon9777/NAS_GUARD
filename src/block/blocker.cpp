@@ -10,11 +10,14 @@
 #include "util/logger.h"
 
 namespace RS::block {
-blocker::blocker(std::chrono::seconds timeout) : timeout_(timeout) {
+blocker::blocker(std::chrono::seconds timeout, const nft_names& names) : timeout_(timeout), names_(names) {
+}
+bool blocker::setup_nft() {
+    return nft_setup(names_);
 }
 void blocker::block(uint32_t ip, time_point now) {
-    ips_[ip] = now + timeout_; // nft 결과와 무관하게 메모리에는 먼저 기록 (재감지 폭주 방지)
-    pid_t pid = block_ip(ip, static_cast<int>(timeout_.count()));
+    ips_[ip] = now + timeout_;	// nft 결과와 무관하게 메모리에는 먼저 기록 (재감지 폭주 방지)
+    pid_t pid = block_ip(ip, static_cast<int>(timeout_.count()), names_);
     if(pid > 0) {
         pending_[pid] = ip;
     }
@@ -37,14 +40,14 @@ void blocker::reap() {
         auto iter = pending_.find(pid);
         if(iter == pending_.end()) continue;
         bool ok = WIFEXITED(status) && WEXITSTATUS(status) == 0;
-        char ip_buf[INET_ADDRSTRLEN];           // std::string 할당 없이 스택 버퍼로
+        char ip_buf[INET_ADDRSTRLEN];	// std::string 할당 없이 스택 버퍼로
         inet_ntop(AF_INET, &iter->second, ip_buf, sizeof(ip_buf));
         if(ok) {
             // 성공시
-            util::logger("[blocked] nft ok: ", ip_buf);
+            util::info("[blocked] nft ok: ", ip_buf);
         } else {
             // 실패시
-            util::logger("[block failed] nft FAILED (exit=", WEXITSTATUS(status), "): ", ip_buf);
+            util::warn("[block failed] nft FAILED (exit=", WEXITSTATUS(status), "): ", ip_buf);
         }
         pending_.erase(iter);
     }

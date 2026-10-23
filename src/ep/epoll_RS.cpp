@@ -15,18 +15,27 @@ epoll_RS::epoll_RS(int timeout) : fd_(epoll_create1(0)), timeout_(timeout) {
     if(fd_ == -1) {
         throw std::system_error(errno, std::generic_category(), "epoll_RS > construc > epoll_create1");
     }
-    RS::util::logger("ep opened");
+    RS::util::info("ep opened");
 }
 
 epoll_RS::~epoll_RS() {
     if(fd_ >= 0) {
         close(fd_);
-        RS::util::logger("epoll_RS closed");
+        RS::util::info("epoll_RS closed");
     }
 }
 
 int epoll_RS::fd() const {
     return fd_;
+}
+
+bool epoll_RS::set_timeout(int timeout) {
+    if(timeout <= 0) {
+        util::error("epoll_RS::set_timeout > timeout should be over 0: ", timeout);
+        return false;
+    }
+    timeout_ = timeout;
+    return true;
 }
 
 eventHandler& epoll_RS::add(std::unique_ptr<eventHandler> handler) {
@@ -45,11 +54,11 @@ eventHandler& epoll_RS::add(std::unique_ptr<eventHandler> handler) {
 epoll_RS::result epoll_RS::wait() {
     int ret = epoll_wait(fd_, event_list_, sizeof(event_list_)/sizeof(epoll_event), timeout_);
     if(ret == -1) {
-        if(errno == EINTR) { // ctrl_z
+        if(errno == EINTR) {	// ctrl_z
             return result::interrupted;
         }
-        util::logger("epoll_RS > wait > epoll_wait: ", std::strerror(errno));
-        return result::error;   // 루프 경로라 던지지 않고 반환
+        util::error("epoll_RS > wait > epoll_wait: ", std::strerror(errno));
+        return result::error;	// 루프 경로라 던지지 않고 반환
     } else if(ret == 0) {
         return result::timeout;
     } else {
