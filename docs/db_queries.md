@@ -163,14 +163,14 @@ sudo nft list set inet guard blocklist
 
 guard는 읽지 않는다. 웹 콘솔이 시작할 때 없으면 만든다.
 
-- `tbl_user`: 관리자 계정 하나 (username, pw_hash, salt). 비밀번호는 PBKDF2-SHA256. 행이 없으면 웹이 시작할 때 `admin / 656530`을 넣는다.
+- `tbl_user`: 관리자 계정 하나 (username, pw_hash, salt). 비밀번호는 PBKDF2-SHA256. 행이 없으면 웹이 시작할 때 초기 계정을 넣는다 (값은 `NAS_GUARD_WEB/app/auth.py`).
 - `tbl_web_config`: key, value. 지금은 `session_secret`(세션 쿠키 서명 키) 하나. 웹이 처음 뜰 때 만들어 두어 재시작해도 로그인이 유지된다.
 
 ```sql
 -- 계정 보기
 SELECT username, datetime(updated_at,'unixepoch','localtime') AS pw_changed FROM tbl_user;
 
--- 비밀번호를 잊었을 때: 계정을 지우고 웹을 재시작하면 admin / 656530 으로 다시 생긴다
+-- 비밀번호를 잊었을 때: 계정을 지우고 웹을 재시작하면 초기 계정으로 다시 생긴다 (auth.py)
 DELETE FROM tbl_user;
 
 -- 모든 로그인 세션 강제 종료: 서명 키를 지우고 웹을 재시작하면 새 키가 생겨 기존 쿠키가 무효가 된다
