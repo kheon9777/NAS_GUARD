@@ -2,13 +2,13 @@
 
 guard가 쓰는 SQLite 파일(`guard.db`)에 자주 날리는 쿼리. 경로는 환경변수 `GUARD_DB_PATH`, 없으면 실행 디렉터리의 `guard.db`.
 
-- 서비스(systemd `guard`): `/home/raspi/sv/guard/guard.db` (유닛 파일이 `GUARD_DB_PATH`로 지정). 웹 콘솔(`guard_web`)도 `sv/guard_web/config.ini`로 같은 파일을 본다.
+- 서비스(systemd `guard`): `/home/raspi/sv/guard/data/guard.db` (유닛 파일이 `GUARD_DB_PATH`로 지정). 웹 콘솔(`guard_web`)도 `sv/guard_web/config.ini`로 같은 파일을 본다.
 - 개발 중 `make run`: 저장소 루트의 `guard.db`.
 
 파일은 root 소유라 `sudo`가 필요하다. WAL 모드라 guard가 돌고 있는 동안에도 읽고 쓸 수 있다. 아래 예시는 서비스 DB 기준이며 `DB` 변수를 먼저 잡아 두면 편하다.
 
 ```sh
-DB=/home/raspi/sv/guard/guard.db
+DB=/home/raspi/sv/guard/data/guard.db
 ```
 
 설정과 화이트리스트를 바꾼 뒤에는 HUP를 보내야 반영된다. `nft_*`와 `log_path`는 HUP로 안 바뀌고 재시작이 필요하다. 가장 쉬운 방법은 웹 콘솔(저장하면 HUP까지 보냄)이고, 직접 고쳤을 때는 아래 중 하나.
@@ -184,7 +184,7 @@ sudo systemctl restart guard_web
 ## 셸 한 줄 예시
 
 ```sh
-DB=/home/raspi/sv/guard/guard.db
+DB=/home/raspi/sv/guard/data/guard.db
 
 # 임계치 바꾸고 바로 반영
 sudo sqlite3 $DB "UPDATE tbl_config_info SET tcp_rate_threshold=50 WHERE id=1;" && sudo systemctl reload guard

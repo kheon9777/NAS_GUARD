@@ -8,7 +8,8 @@ Type=simple
 WorkingDirectory=/home/raspi/sv/guard
 ExecStart=/home/raspi/sv/guard/guard
 ExecReload=/bin/kill -HUP $MAINPID
-Environment=GUARD_DB_PATH=/home/raspi/sv/guard/guard.db
+# DB는 data/ 아래 (root:guard 2770, 파일 660. 웹 콘솔이 그룹 guard로 같이 씀. deploy.sh setup_data)
+Environment=GUARD_DB_PATH=/home/raspi/sv/guard/data/guard.db
 # 로그 레벨: debug | info | warn | error. debug는 통과한 패킷까지 전부 찍혀 파일이 빨리 커짐
 Environment=GUARD_LOG_LEVEL=info
 # 치명적 오류는 exit 1 -> 재시작. SIGTERM(정상 종료)은 exit 0 -> 재시작 안 함
