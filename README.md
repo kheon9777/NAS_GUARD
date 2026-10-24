@@ -1,7 +1,8 @@
 # NAS_GUARD
 
 라즈베리파이 NAS를 외부에 열어 두었을 때 들어오는 공격을 감지하고 차단하는 데몬 `guard`    
-C++20, Linux 전용 (raw 소켓, epoll, nftables, SQLite)
+C++20, Linux 전용 (raw 소켓, epoll, nftables, SQLite)      
+[웹 콘솔](https://github.com/kheon9777/NAS_GUARD_WEB.git)
 
 ## 구조
 
